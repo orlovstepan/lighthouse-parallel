@@ -15,15 +15,16 @@
     "build:frontend": "cd frontend && npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npm run build && npm run start:prod",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:dev": "npm run kill:chrome && nest start --watch",
+    "start:debug": "npm run kill:chrome && nest start --debug --watch",
+    "start:prod": "npm run kill:chrome && node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "kill:chrome": "pkill -f 'Google Chrome' || true"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.3",

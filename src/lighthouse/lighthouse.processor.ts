@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { fork, ChildProcess } from 'child_process';
 import { join } from 'path';
 import { LighthouseMetricsService } from '../metrics/lighthouse-metrics.service';
+import { WebhookService } from './webhook.service';
 import type { LighthouseResult, ChildMessage } from './workers/lighthouse-runner';
 
 export interface LighthouseJobData {
@@ -12,8 +13,18 @@ export interface LighthouseJobData {
   categories?: string[];
   locale?: string;
   jobId: string;
+  batchId?: string;
   webhookUrl?: string;
   webhookToken?: string;
+}
+
+export interface LighthouseJobResult extends LighthouseResult {
+  scores?: {
+    performance: number;
+    accessibility: number;
+    seo: number;
+    'best-practices': number;
+  };
 }
 
 @Processor('lighthouse-audits', {
@@ -26,6 +37,7 @@ export class LighthouseProcessor extends WorkerHost implements OnModuleInit {
   constructor(
     private configService: ConfigService,
     private metricsService: LighthouseMetricsService,
+    private webhookService: WebhookService,
   ) {
     super();
     const concurrencyValue = parseInt(
@@ -55,27 +67,22 @@ export class LighthouseProcessor extends WorkerHost implements OnModuleInit {
     return this.concurrency;
   }
 
-  async process(job: Job<LighthouseJobData>): Promise<LighthouseResult> {
-    const { url, categories, locale, webhookUrl, webhookToken } = job.data;
+  async process(job: Job<LighthouseJobData>): Promise<LighthouseJobResult> {
+    const { url, categories, locale } = job.data;
     const startTime = Date.now();
 
     this.metricsService.recordJobStart();
-    this.logger.log(`Starting Lighthouse audit for ${url} (Job: ${job.id})`);
+    this.logger.log(`Starting audit for ${url} (Job: ${job.id})`);
 
     try {
       const result = await new Promise<LighthouseResult>((resolve, reject) => {
         const workerPath = join(__dirname, 'workers', 'lighthouse-runner.js');
-
-        // Fork a child process for isolation
         const child: ChildProcess = fork(workerPath, [], {
           stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-          env: { ...process.env }, // Explicitly pass environment variables including CHROME_PATH
+          env: { ...process.env },
         });
 
-        // Track if result was received to prevent hanging promises
         let resultReceived = false;
-
-        // Timeout after 2 minutes
         const timeout = setTimeout(() => {
           if (!resultReceived) {
             resultReceived = true;
@@ -84,31 +91,23 @@ export class LighthouseProcessor extends WorkerHost implements OnModuleInit {
           }
         }, 120000);
 
-        // Handle messages from child process
         child.on('message', (msg: ChildMessage) => {
           if (msg.type === 'AUDIT_RESULT' && !resultReceived) {
             resultReceived = true;
             clearTimeout(timeout);
-
+            child.kill('SIGKILL');
             if (msg.result.success) {
-              this.logger.log(`Completed audit for ${url} in ${msg.result.duration}ms`);
-              // Kill child immediately with SIGKILL (parent controls lifecycle completely)
-              child.kill('SIGKILL');
               resolve(msg.result);
             } else {
-              this.logger.error(`Audit failed for ${url}: ${msg.result.error}`);
-              child.kill('SIGKILL');
               reject(new Error(msg.result.error));
             }
           }
         });
 
-        // Handle errors
         child.on('error', (error) => {
           if (!resultReceived) {
             resultReceived = true;
             clearTimeout(timeout);
-            this.logger.error(`Child process error for ${url}: ${error.message}`);
             reject(error);
           }
         });
@@ -117,125 +116,91 @@ export class LighthouseProcessor extends WorkerHost implements OnModuleInit {
           if (!resultReceived) {
             resultReceived = true;
             clearTimeout(timeout);
-            const errorMsg = `Child process exited prematurely with code ${code} for ${url}`;
-            this.logger.warn(errorMsg);
-            reject(new Error(errorMsg));
+            reject(new Error(`Child process exited with code ${code}`));
           }
         });
 
-        // Send audit request to child process
-        child.send({
-          type: 'RUN_AUDIT',
-          url,
-          options: { categories, locale },
-        });
+        child.send({ type: 'RUN_AUDIT', url, options: { categories, locale } });
       });
 
-      // Record successful completion
       const durationSeconds = (Date.now() - startTime) / 1000;
       this.metricsService.recordJobCompleted(durationSeconds, url);
+      this.logger.log(`Completed audit for ${url} in ${result.duration}ms`);
 
-      // Send webhook if configured
-      if (webhookUrl) {
-        await this.sendWebhook(job.id as string, 'completed', result, webhookUrl, webhookToken);
-      }
-
-      return result;
-    } catch (error) {
-      // Record failure
-      const errorMessage = error instanceof Error ? error.message : 'unknown';
-      this.metricsService.recordJobFailed(errorMessage);
-
-      // Send webhook if configured
-      if (webhookUrl) {
-        await this.sendWebhook(
-          job.id as string,
-          'failed',
-          { error: errorMessage },
-          webhookUrl,
-          webhookToken,
-        );
-      }
-
-      throw error;
-    } finally {
-      this.logger.log(`Job processing finished for ${url}`);
-    }
-  }
-
-  /**
-   * Format Lighthouse scores for IncluScan (multiply by 100: Lighthouse uses 0-1, IncluScan expects 0-100)
-   */
-  private formatScoresForWebhook(
-    state: 'completed' | 'failed',
-    result: LighthouseResult | { error: string },
-  ) {
-    if (state === 'completed' && 'lhr' in result && result.lhr?.categories) {
+      // Return result with pre-computed scores (webhook will be sent in onCompleted)
       return {
         ...result,
-        scores: {
-          performance: (result.lhr.categories.performance?.score || 0) * 100,
-          accessibility: (result.lhr.categories.accessibility?.score || 0) * 100,
-          seo: (result.lhr.categories.seo?.score || 0) * 100,
-          'best-practices': (result.lhr.categories['best-practices']?.score || 0) * 100,
-        },
+        scores: this.extractScores(result),
       };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'unknown';
+      this.metricsService.recordJobFailed(errorMessage);
+      this.logger.error(`Audit failed for ${url}: ${errorMessage}`);
+      throw error;
     }
-    return result;
   }
 
   /**
-   * Send webhook notification with job results (fire-and-forget pattern)
+   * Extract scores from Lighthouse result (multiply by 100: Lighthouse uses 0-1, IncluScan expects 0-100)
    */
-  private async sendWebhook(
-    jobId: string,
-    state: 'completed' | 'failed',
-    result: LighthouseResult | { error: string },
-    webhookUrl: string,
-    webhookToken?: string,
-  ): Promise<void> {
-    try {
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+  private extractScores(result: LighthouseResult) {
+    if (result.lhr?.categories) {
+      return {
+        performance: Math.round((result.lhr.categories.performance?.score || 0) * 100),
+        accessibility: Math.round((result.lhr.categories.accessibility?.score || 0) * 100),
+        seo: Math.round((result.lhr.categories.seo?.score || 0) * 100),
+        'best-practices': Math.round((result.lhr.categories['best-practices']?.score || 0) * 100),
       };
-
-      if (webhookToken) {
-        headers['Authorization'] = `Bearer ${webhookToken}`;
-      }
-
-      const formattedResult = this.formatScoresForWebhook(state, result);
-
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ jobId, state, result: formattedResult }),
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      this.logger.log(`✅ Webhook sent successfully for job ${jobId} to ${webhookUrl}`);
-    } catch (error) {
-      // Fire-and-forget: log error but don't fail the job
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Failed to send webhook for job ${jobId}: ${errorMessage}`);
     }
+    return {
+      performance: 0,
+      accessibility: 0,
+      seo: 0,
+      'best-practices': 0,
+    };
   }
 
   @OnWorkerEvent('active')
-  onActive(job: Job) {
-    this.logger.log(`Job ${job.id} is now active`);
+  onActive(job: Job<LighthouseJobData>) {
+    this.logger.log(`Job ${job.id} active: ${job.data.url}`);
   }
 
+  /**
+   * Send minimal webhook AFTER BullMQ has saved returnvalue to Redis
+   * IncluScan fetches url, scores, lhr from Redis directly
+   */
   @OnWorkerEvent('completed')
-  onCompleted(job: Job) {
-    this.logger.log(`Job ${job.id} completed successfully`);
+  async onCompleted(job: Job<LighthouseJobData, LighthouseJobResult>) {
+    const { url, batchId, webhookUrl, webhookToken } = job.data;
+
+    this.logger.log(`Job ${job.id} completed: ${url}`);
+
+    if (webhookUrl) {
+      await this.webhookService.queueWebhook({
+        jobId: job.id as string,
+        batchId,
+        state: 'completed',
+        webhookUrl,
+        webhookToken,
+      });
+    }
   }
 
   @OnWorkerEvent('failed')
-  onFailed(job: Job, error: Error) {
-    this.logger.error(`Job ${job.id} failed: ${error.message}`);
+  async onFailed(job: Job<LighthouseJobData>, error: Error) {
+    const { url, batchId, webhookUrl, webhookToken } = job.data;
+
+    this.logger.error(`Job ${job.id} failed: ${url} - ${error.message}`);
+
+    if (webhookUrl) {
+      await this.webhookService.queueWebhook({
+        jobId: job.id as string,
+        batchId,
+        state: 'failed',
+        error: error.message,
+        webhookUrl,
+        webhookToken,
+      });
+    }
   }
 }

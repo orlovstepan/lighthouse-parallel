@@ -141,4 +141,40 @@ export class LighthouseAuditController {
 
     return status;
   }
+
+  @Get('batch/:batchId/status')
+  @ApiOperation({
+    summary: 'Get lightweight batch status (counters only, no LHR data)',
+    description: 'Use this endpoint for polling progress. Returns only counters, not full job results.',
+  })
+  @ApiParam({
+    name: 'batchId',
+    description: 'The unique batch ID returned when creating a batch audit',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lightweight batch status retrieved successfully',
+    schema: {
+      example: {
+        batchId: 'batch-xyz789',
+        status: 'processing',
+        total: 10,
+        completed: 5,
+        failed: 0,
+        active: 2,
+        waiting: 3,
+        progress: 50,
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Batch not found' })
+  async getBatchStatusLight(@Param('batchId') batchId: string) {
+    const status = await this.lighthouseService.getBatchStatusLight(batchId);
+
+    if (!status) {
+      throw new NotFoundException(`Batch ${batchId} not found`);
+    }
+
+    return status;
+  }
 }

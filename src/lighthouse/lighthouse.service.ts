@@ -68,6 +68,7 @@ export class LighthouseService {
           categories,
           locale,
           jobId,
+          batchId, // Include batchId for webhook payload
           webhookUrl,
           webhookToken,
         },
@@ -158,6 +159,52 @@ export class LighthouseService {
     };
   }
 
+  /**
+   * Get lightweight batch status (counters only, no LHR data)
+   * Used for polling from IncluScan frontend
+   */
+  async getBatchStatusLight(batchId: string) {
+    const batch = this.batches.get(batchId);
+
+    if (!batch) {
+      return null;
+    }
+
+    // Get only job states, not full results
+    const jobStates = await Promise.all(
+      batch.jobIds.map(async (jobId) => {
+        const job = await this.lighthouseQueue.getJob(jobId);
+        if (!job) return null;
+        return await job.getState();
+      }),
+    );
+
+    const completed = jobStates.filter((s) => s === 'completed').length;
+    const failed = jobStates.filter((s) => s === 'failed').length;
+    const active = jobStates.filter((s) => s === 'active').length;
+    const waiting = jobStates.filter((s) => s === 'waiting' || s === 'delayed').length;
+
+    const isFinished = completed + failed === batch.jobIds.length;
+    const status = isFinished
+      ? failed > 0
+        ? 'completed_with_errors'
+        : 'completed'
+      : active > 0
+        ? 'processing'
+        : 'waiting';
+
+    return {
+      batchId,
+      status,
+      total: batch.jobIds.length,
+      completed,
+      failed,
+      active,
+      waiting,
+      progress: Math.round((completed / batch.jobIds.length) * 100),
+    };
+  }
+
   async getAllBatches() {
     const batchIds = Array.from(this.batches.keys());
 
@@ -244,5 +291,34 @@ export class LighthouseService {
     const count = this.batches.size;
     this.batches.clear();
     this.logger.log(`Cleared ${count} batch(es) from memory`);
+  }
+
+  /**
+   * Clear only batches where ALL jobs have their webhooks resolved
+   * A batch is "resolved" when all its jobIds are in the resolvedJobIds set
+   */
+  clearResolvedBatches(resolvedJobIds: Set<string>): number {
+    let clearedCount = 0;
+
+    for (const [batchId, batch] of this.batches.entries()) {
+      // Check if ALL jobs in this batch are resolved
+      const allJobsResolved = batch.jobIds.every((jobId) =>
+        resolvedJobIds.has(jobId),
+      );
+
+      if (allJobsResolved) {
+        this.batches.delete(batchId);
+        clearedCount++;
+        this.logger.debug(`Cleared resolved batch ${batchId}`);
+      }
+    }
+
+    if (clearedCount > 0) {
+      this.logger.log(
+        `Cleared ${clearedCount} resolved batch(es), ${this.batches.size} remaining`,
+      );
+    }
+
+    return clearedCount;
   }
 }

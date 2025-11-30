@@ -5,7 +5,9 @@ import { LighthouseAdminController } from './controllers/lighthouse-admin.contro
 import { LighthouseService } from './lighthouse.service';
 import { LighthouseProcessor } from './lighthouse.processor';
 import { LighthouseCleanupService } from './lighthouse-cleanup.service';
-import { LIGHTHOUSE_QUEUE } from '../config/queue.config';
+import { WebhookProcessor } from './webhook.processor';
+import { WebhookService } from './webhook.service';
+import { LIGHTHOUSE_QUEUE, WEBHOOK_QUEUE } from '../config/queue.config';
 import { MetricsModule } from '../metrics/metrics.module';
 
 @Module({
@@ -13,9 +15,19 @@ import { MetricsModule } from '../metrics/metrics.module';
     BullModule.registerQueue({
       name: LIGHTHOUSE_QUEUE,
     }),
+    BullModule.registerQueue({
+      name: WEBHOOK_QUEUE,
+    }),
     MetricsModule,
   ],
   controllers: [LighthouseAuditController, LighthouseAdminController],
-  providers: [LighthouseService, LighthouseProcessor, LighthouseCleanupService],
+  providers: [
+    LighthouseService,
+    LighthouseProcessor,
+    LighthouseCleanupService,
+    WebhookProcessor,
+    WebhookService,
+  ],
+  exports: [LighthouseService, WebhookService],
 })
 export class LighthouseModule {}
