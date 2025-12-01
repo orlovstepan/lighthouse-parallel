@@ -76,6 +76,8 @@ async function runLighthouseAudit(
       locale: (options.locale || 'en') as Locale,
       port: chrome.port,
       formFactor: 'mobile' as const,
+      // Ignore HTTP status codes (useful for SPAs that return 404 but still serve content)
+      ignoreStatusCode: true,
       throttling: {
         rttMs: 150,
         throughputKbps: 1638.4,
