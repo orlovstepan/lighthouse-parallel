@@ -5,8 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { AUTH_ERROR_MESSAGES } from '../common/constants/error-messages';
 
 /**
- * Service handling authentication operations
- * Validates passwords using bcrypt and generates JWT tokens
+ * Authentication service for dashboard login
  */
 @Injectable()
 export class AuthService {
@@ -16,10 +15,7 @@ export class AuthService {
   ) {}
 
   /**
-   * Validates user password and generates JWT token
-   * @param password - Plain text password from user
-   * @returns Object containing JWT access token
-   * @throws UnauthorizedException if password is invalid
+   * Validate password and generate JWT token
    */
   async validatePassword(password: string): Promise<{ access_token: string }> {
     const hashedPassword = this.configService.get<string>('DASHBOARD_PASSWORD_HASH');
@@ -43,9 +39,7 @@ export class AuthService {
   }
 
   /**
-   * Validates JWT token
-   * @param token - JWT token to validate
-   * @returns true if token is valid, false otherwise
+   * Verify JWT token validity
    */
   async validateToken(token: string): Promise<boolean> {
     try {

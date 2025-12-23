@@ -4,8 +4,7 @@ import { LighthouseService } from '../lighthouse.service';
 import { LighthouseCleanupService } from '../lighthouse-cleanup.service';
 
 /**
- * Controller dedicated to administration operations
- * Manages: stats, cleanup, monitoring
+ * Admin operations: stats, cleanup, and batch management
  */
 @ApiTags('lighthouse')
 @Controller('lighthouse')
@@ -37,7 +36,7 @@ export class LighthouseAdminController {
   @Post('cleanup')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Clean EVERYTHING - all jobs, batches, and Redis storage (auto runs every hour)',
+    summary: 'Trigger manual cleanup (runs automatically every hour)',
   })
   @ApiResponse({
     status: 200,

@@ -141,7 +141,7 @@ export class LighthouseProcessor extends WorkerHost implements OnModuleInit {
   }
 
   /**
-   * Extract scores from Lighthouse result (multiply by 100: Lighthouse uses 0-1, IncluScan expects 0-100)
+   * Extract scores and convert from 0-1 to 0-100 scale
    */
   private extractScores(result: LighthouseResult) {
     if (result.lhr?.categories) {
@@ -166,8 +166,7 @@ export class LighthouseProcessor extends WorkerHost implements OnModuleInit {
   }
 
   /**
-   * Send minimal webhook AFTER BullMQ has saved returnvalue to Redis
-   * IncluScan fetches url, scores, lhr from Redis directly
+   * Queue webhook after job completes - receiver fetches full LHR from Redis
    */
   @OnWorkerEvent('completed')
   async onCompleted(job: Job<LighthouseJobData, LighthouseJobResult>) {

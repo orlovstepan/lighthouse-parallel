@@ -1,78 +1,72 @@
-# 🚀 Lighthouse Parallel
+# Lighthouse Parallel
 
-<div align="center">
-
-**Production-ready API for running Google Lighthouse audits at scale**
+Production-ready API for running Google Lighthouse audits at scale with parallel execution.
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 [![NestJS](https://img.shields.io/badge/NestJS-v11-E0234E?logo=nestjs)](https://nestjs.com/)
-[![BullMQ](https://img.shields.io/badge/BullMQ-v5-FF6B6B?logo=redis)](https://bullmq.io/)
-[![Lighthouse](https://img.shields.io/badge/Lighthouse-v12-F44B21?logo=lighthouse)](https://github.com/GoogleChrome/lighthouse)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [API Docs](#-api-documentation) • [Architecture](#-architecture) • [Contributing](#-contributing)
-
-</div>
+[Quick Start](#quick-start) • [API Documentation](#api-documentation) • [Architecture](#architecture) • [Deployment](#deployment)
 
 ---
 
-## 📖 Overview
+## Overview
 
-Lighthouse Parallel is a **high-performance API** that enables running Google Lighthouse audits **concurrently at massive scale**. Built with NestJS, BullMQ, and modern DevOps practices, it's designed for:
+Lighthouse Parallel is a high-performance API that enables running Google Lighthouse audits concurrently at massive scale. Built with NestJS, BullMQ, and modern DevOps practices.
 
-- 🏢 **Enterprises** monitoring hundreds of web properties
-- 📊 **Performance teams** running continuous audits in CI/CD
-- 🔍 **SEO agencies** analyzing client websites at scale
-- 🛠️ **Developers** integrating performance testing into workflows
+**Use cases:**
+- Enterprises monitoring hundreds of web properties
+- Performance teams running continuous audits in CI/CD pipelines
+- SEO agencies analyzing client websites at scale
+- Developers integrating performance testing into workflows
 
-### Why Lighthouse Parallel?
+### Why use this?
 
-| Problem | Solution |
-|---------|----------|
-| Running audits sequentially is **slow** ⏱️ | **Parallel execution** with configurable workers |
-| Chrome instances are **resource-heavy** 💾 | **Isolated child processes** with smart lifecycle management |
-| Managing job queues is **complex** 🤯 | **BullMQ integration** with retry logic & monitoring |
-| No built-in **reporting dashboard** 📊 | **Modern React dashboard** with real-time updates |
-| Difficult to **integrate webhooks** 🔔 | **Built-in webhook support** for CI/CD pipelines |
+| Challenge | Solution |
+|-----------|----------|
+| Sequential audits are slow | Configurable parallel execution with 8-32 workers |
+| Chrome instances consume heavy resources | Isolated child processes with smart lifecycle management |
+| Complex job queue management | BullMQ integration with retry logic and monitoring |
+| No reporting dashboard | Modern React dashboard with real-time updates |
+| Difficult webhook integration | Built-in webhook support for CI/CD pipelines |
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎯 Core Capabilities
+### Core Capabilities
 
-- **⚡ Massive Parallelism**: Run 8-32 concurrent audits (configurable based on server resources)
-- **🌍 Internationalization**: Generate reports in 20+ languages (`en`, `fr`, `de`, `es`, `ja`, etc.)
-- **📦 Batch Processing**: Audit hundreds of URLs with a single API call
-- **🔄 Smart Retries**: Automatic retry with exponential backoff on failures
-- **🪝 Webhooks**: Real-time notifications when audits complete
-- **📊 Prometheus Metrics**: Production-grade monitoring and observability
-- **🎨 Modern Dashboard**: React-based UI for managing audits and viewing results
-- **🔒 Security**: API key authentication, JWT tokens, Helmet protection
-- **🐳 Docker Ready**: Production-optimized multi-stage builds
-- **📈 Auto-scaling**: Handles traffic spikes with BullMQ's smart concurrency
+- **Massive Parallelism**: Run 8-32 concurrent audits (configurable based on server resources)
+- **Internationalization**: Generate reports in 20+ languages (en, fr, de, es, ja, etc.)
+- **Batch Processing**: Audit hundreds of URLs with a single API call
+- **Smart Retries**: Automatic retry with exponential backoff on failures
+- **Webhooks**: Real-time notifications when audits complete
+- **Prometheus Metrics**: Production-grade monitoring and observability
+- **Modern Dashboard**: React-based UI for managing audits and viewing results
+- **Security**: API key authentication, JWT tokens, Helmet protection
+- **Docker Ready**: Production-optimized multi-stage builds
+- **Auto-scaling**: Handles traffic spikes with BullMQ's smart concurrency
 
-### 🛠️ Technical Highlights
+### Technical Highlights
 
 - **Zero Race Conditions**: Parent-controlled child process lifecycle (no arbitrary timeouts)
 - **Resource Efficient**: Automatic cleanup of completed jobs and reports
-- **Health Checks**: `/health` endpoints for Kubernetes/Docker orchestration
+- **Health Checks**: /health endpoints for Kubernetes/Docker orchestration
 - **Structured Logging**: Winston with daily rotation for production debugging
 - **Type Safety**: Full TypeScript across backend and frontend
 - **Developer Experience**: Hot reload, comprehensive error handling, Swagger docs
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- **Node.js** 20+ and npm 9+
-- **Docker** & Docker Compose (recommended)
-- **Redis** 6+ (included in docker-compose)
+- Node.js 20+ and npm 9+
+- Docker & Docker Compose (recommended)
+- Redis 6+
 
-### 🐳 Docker Setup (Recommended)
+### Docker Setup (Recommended)
 
 ```bash
 # Clone the repository
@@ -101,7 +95,7 @@ docker-compose up --build
 # Dashboard at http://localhost:3002/ (login with configured password)
 ```
 
-### 💻 Local Development
+### Local Development
 
 ```bash
 # Install dependencies
@@ -125,7 +119,7 @@ npm run start:prod
 
 ---
 
-## 📚 API Documentation
+## API Documentation
 
 ### Authentication
 
@@ -137,12 +131,13 @@ curl -H "X-API-Key: YOUR_API_KEY" http://localhost:3002/lighthouse/stats
 
 ### Endpoints
 
-#### 🔍 Single Audit
+#### Single Audit
 
 ```bash
 POST /lighthouse/audit
 ```
 
+**Request:**
 ```json
 {
   "url": "https://example.com",
@@ -163,12 +158,13 @@ POST /lighthouse/audit
 }
 ```
 
-#### 📦 Batch Audits
+#### Batch Audits
 
 ```bash
 POST /lighthouse/batch
 ```
 
+**Request:**
 ```json
 {
   "urls": [
@@ -192,7 +188,7 @@ POST /lighthouse/batch
 }
 ```
 
-#### 📊 Check Status
+#### Check Status
 
 ```bash
 GET /lighthouse/job/:jobId
@@ -200,7 +196,7 @@ GET /lighthouse/batch/:batchId
 GET /lighthouse/stats
 ```
 
-#### 🗑️ Cleanup (Admin)
+#### Cleanup (Admin)
 
 ```bash
 POST /lighthouse/cleanup
@@ -208,7 +204,7 @@ POST /lighthouse/cleanup
 
 ### Webhooks
 
-When a job completes, a POST request is sent to your `webhookUrl`:
+When a job completes, a POST request is sent to your webhookUrl:
 
 ```json
 {
@@ -223,11 +219,11 @@ When a job completes, a POST request is sent to your `webhookUrl`:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐
-│   React SPA     │  ← Modern Dashboard (Vite + React 19 + Tailwind)
+│   React SPA     │  ← Dashboard (Vite + React 19 + Tailwind)
 └────────┬────────┘
          │ HTTP/REST
 ┌────────▼────────────────────────────────────────┐
@@ -276,15 +272,15 @@ When a job completes, a POST request is sent to your `webhookUrl`:
 
 ---
 
-## 📊 Performance
+## Performance
 
 ### Benchmarks
 
 | Scenario | Sequential | Parallel (8 workers) | Speedup |
 |----------|------------|----------------------|---------|
-| 10 audits | ~450s | ~60s | **7.5x** |
-| 50 audits | ~2250s | ~300s | **7.5x** |
-| 100 audits | ~4500s | ~600s | **7.5x** |
+| 10 audits | ~450s | ~60s | 7.5x |
+| 50 audits | ~2250s | ~300s | 7.5x |
+| 100 audits | ~4500s | ~600s | 7.5x |
 
 **Test environment**: 16 vCPU, 64GB RAM, Hetzner Cloud
 
@@ -300,12 +296,12 @@ When a job completes, a POST request is sent to your `webhookUrl`:
 |--------------|---------------------|
 | 4 vCPU, 8GB RAM | 4-6 workers |
 | 8 vCPU, 16GB RAM | 8-12 workers |
-| 16 vCPU, 64GB RAM | 16-24 workers ⭐ |
+| 16 vCPU, 64GB RAM | 16-24 workers |
 | 32 vCPU, 128GB RAM | 32-48 workers |
 
 ---
 
-## 🛠️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -334,9 +330,9 @@ CORS_ORIGINS=http://localhost:5173,https://your-domain.com
 
 ### Lighthouse Options
 
-Customize audit settings in `src/lighthouse/workers/lighthouse-runner.js`:
+Customize audit settings in `src/lighthouse/workers/lighthouse-runner.ts`:
 
-```javascript
+```typescript
 const lighthouseOptions = {
   logLevel: 'error',
   output: 'json',
@@ -353,7 +349,7 @@ const lighthouseOptions = {
 
 ---
 
-## 🐳 Production Deployment
+## Deployment
 
 ### Docker Compose
 
@@ -410,7 +406,7 @@ spec:
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Unit tests
@@ -425,57 +421,27 @@ npm run test:cov
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Contributions are welcome! Please follow these steps:
 
-### Development Setup
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Make your changes
 4. Run tests: `npm test`
-5. Commit: `git commit -m 'Add amazing feature'`
-6. Push: `git push origin feature/amazing-feature`
+5. Commit: `git commit -m 'Add your feature'`
+6. Push: `git push origin feature/your-feature`
 7. Open a Pull Request
 
-### Contribution Ideas
-
-- 🌟 Add support for custom Lighthouse configs
-- 📊 Enhance dashboard with charts and analytics
-- 🔌 Add integrations (Slack, Discord, Teams)
-- 🧪 Improve test coverage
-- 📝 Translate documentation to other languages
-- 🚀 Performance optimizations
-- 🐛 Bug fixes and improvements
-
 ---
 
-## 🗺️ Roadmap
-
-- [x] Parallel audit execution
-- [x] Batch processing
-- [x] Webhook notifications
-- [x] React dashboard
-- [x] Multi-language reports
-- [x] Prometheus metrics
-- [ ] GraphQL API
-- [ ] WebSocket real-time updates
-- [ ] Historical trend analysis
-- [ ] Custom Lighthouse plugins
-- [ ] Slack/Discord integrations
-- [ ] Scheduled recurring audits
-- [ ] PDF report generation
-
----
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Google Lighthouse](https://github.com/GoogleChrome/lighthouse) - The audit engine
 - [NestJS](https://nestjs.com/) - Progressive Node.js framework
@@ -484,19 +450,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Support
-
-- 📧 Email: support@lighthouse-parallel.dev
-- 🐛 Issues: [GitHub Issues](https://github.com/SamuelChojnacki/lighthouse-parallele/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/SamuelChojnacki/lighthouse-parallele/discussions)
-- 📖 Documentation: [Wiki](https://github.com/SamuelChojnacki/lighthouse-parallele/wiki)
-
----
-
-<div align="center">
-
-**⭐ Star this repo if you find it useful!**
-
-Made with ❤️ by Sabaï team
-
-</div>
+Made by Samuel Chojnacki

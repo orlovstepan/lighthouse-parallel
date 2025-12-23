@@ -4,7 +4,7 @@ import { Logger, OnModuleInit } from '@nestjs/common';
 import { WEBHOOK_QUEUE } from '../config/queue.config';
 
 /**
- * Minimal webhook payload - IncluScan fetches url/scores/lhr from Redis
+ * Webhook payload - receiver fetches full data from Redis
  */
 export interface WebhookJobData {
   jobId: string;
@@ -16,7 +16,7 @@ export interface WebhookJobData {
 }
 
 @Processor(WEBHOOK_QUEUE, {
-  concurrency: 3, // Process 3 webhooks in parallel (IncluScan can handle it)
+  concurrency: 3,
 })
 export class WebhookProcessor extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(WebhookProcessor.name);
@@ -39,7 +39,7 @@ export class WebhookProcessor extends WorkerHost implements OnModuleInit {
         headers['Authorization'] = `Bearer ${webhookToken}`;
       }
 
-      // Minimal payload - IncluScan fetches url/scores/lhr from Redis
+      // Minimal payload - receiver fetches full data from Redis
       const payload = {
         jobId,
         batchId,

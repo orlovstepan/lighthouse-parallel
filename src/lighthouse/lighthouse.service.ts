@@ -160,8 +160,7 @@ export class LighthouseService {
   }
 
   /**
-   * Get lightweight batch status (counters only, no LHR data)
-   * Used for polling from IncluScan frontend
+   * Get batch progress without LHR data - for polling/status checks
    */
   async getBatchStatusLight(batchId: string) {
     const batch = this.batches.get(batchId);
@@ -278,14 +277,14 @@ export class LighthouseService {
   }
 
   /**
-   * Expose queue instance for cleanup service
+   * Queue instance accessor for cleanup operations
    */
   getQueue(): Queue<LighthouseJobData> {
     return this.lighthouseQueue;
   }
 
   /**
-   * Clear all batch tracking (used during cleanup)
+   * Clear all batch metadata from memory
    */
   clearAllBatches() {
     const count = this.batches.size;
@@ -294,8 +293,7 @@ export class LighthouseService {
   }
 
   /**
-   * Clear only batches where ALL jobs have their webhooks resolved
-   * A batch is "resolved" when all its jobIds are in the resolvedJobIds set
+   * Clear batches where all jobs have delivered webhooks
    */
   clearResolvedBatches(resolvedJobIds: Set<string>): number {
     let clearedCount = 0;

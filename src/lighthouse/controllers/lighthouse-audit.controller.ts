@@ -14,8 +14,7 @@ import { LighthouseService } from '../lighthouse.service';
 import { AuditRequestDto, BatchAuditDto } from '../dto/audit-request.dto';
 
 /**
- * Controller dédié aux opérations d'audit Lighthouse
- * Gère : création d'audits, batches, récupération de résultats
+ * Handles audit creation and status checks
  */
 @ApiTags('lighthouse')
 @Controller('lighthouse')
@@ -144,8 +143,8 @@ export class LighthouseAuditController {
 
   @Get('batch/:batchId/status')
   @ApiOperation({
-    summary: 'Get lightweight batch status (counters only, no LHR data)',
-    description: 'Use this endpoint for polling progress. Returns only counters, not full job results.',
+    summary: 'Get batch progress (lightweight - no LHR data)',
+    description: 'Returns only counters for efficient polling',
   })
   @ApiParam({
     name: 'batchId',

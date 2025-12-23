@@ -14,8 +14,7 @@ export class WebhookService {
   ) {}
 
   /**
-   * Queue a webhook delivery job
-   * Will be processed sequentially (concurrency: 1) with retry on failure
+   * Queue webhook for delivery with automatic retry on failure
    */
   async queueWebhook(data: WebhookJobData): Promise<string> {
     const job = await this.webhookQueue.add('deliver', data, {
@@ -36,7 +35,7 @@ export class WebhookService {
   }
 
   /**
-   * Get webhook queue stats
+   * Get queue statistics
    */
   async getQueueStats() {
     const waiting = await this.webhookQueue.getWaitingCount();
@@ -48,7 +47,7 @@ export class WebhookService {
   }
 
   /**
-   * Expose queue instance for cleanup service
+   * Queue instance accessor for cleanup operations
    */
   getQueue(): Queue<WebhookJobData> {
     return this.webhookQueue;

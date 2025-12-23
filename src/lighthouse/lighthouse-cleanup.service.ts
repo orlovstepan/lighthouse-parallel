@@ -14,8 +14,7 @@ export class LighthouseCleanupService {
   ) {}
 
   /**
-   * Clean up jobs every hour
-   * Only removes Lighthouse jobs whose webhooks have been delivered (IncluScan responded 200)
+   * Hourly cleanup - removes completed jobs only after webhooks are delivered
    */
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupOldJobs() {
@@ -30,8 +29,7 @@ export class LighthouseCleanupService {
   }
 
   /**
-   * Clean jobs intelligently - only remove Lighthouse jobs whose webhooks are resolved
-   * A webhook is "resolved" when IncluScan has responded 200 (after fetching LHR)
+   * Removes jobs with delivered webhooks. Jobs without webhooks are also cleaned.
    */
   async cleanEverything(): Promise<CleanupAllResult> {
     this.logger.log('Cleanup triggered - removing jobs with delivered webhooks');
