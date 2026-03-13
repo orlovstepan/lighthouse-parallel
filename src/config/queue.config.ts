@@ -18,6 +18,11 @@ export const queueConfig = BullModule.forRootAsync({
         type: 'exponential',
         delay: 2000,
       },
+      removeOnComplete: { count: 100 },
+      removeOnFail: { count: 100 },
+    },
+    streams: {
+      events: { maxLen: 500 },
     },
   }),
 });
