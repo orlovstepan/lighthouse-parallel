@@ -22,7 +22,7 @@ export const queueConfig = BullModule.forRootAsync({
       removeOnFail: { count: 100 },
     },
     streams: {
-      events: { maxLen: 500 },
+      events: { maxLen: 20 },
     },
   }),
 });
